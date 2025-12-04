@@ -1,0 +1,39 @@
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+
+# CI/CD
+.github/
+
+# IDE
+.idea/
+.vscode/
+
+# Build artifacts
+bin/
+dist/
+
+# Test files
+*_test.go
+tests/
+
+# Deployment files
+deployments/
+scripts/
+
+# Environment files
+.env
+.env.*
+
+# Temporary files
+tmp/
+temp/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
