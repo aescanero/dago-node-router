@@ -9,7 +9,7 @@
 *.test
 
 # Output of the go build command
-router-worker
+/router-worker
 
 # Code coverage profiles and other test artifacts
 *.out
