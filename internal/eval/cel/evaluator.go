@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Evaluator evaluates CEL expressions
@@ -103,12 +102,10 @@ func (e *Evaluator) ValidateExpression(expression string) error {
 	}
 
 	// Check that the expression returns a boolean
-	// Note: ResultType() returns *expr.Type in newer CEL versions
-	resultType := ast.ResultType()
-	if resultType != nil && resultType.GetPrimitive() != 0 {
-		// For now, skip strict type checking as CEL API has changed
-		// TODO: Update to proper type checking with new CEL API
-	}
+	// Note: OutputType() replaces deprecated ResultType() in newer CEL versions
+	outputType := ast.OutputType()
+	_ = outputType // Type checking temporarily disabled due to CEL API changes
+	// TODO: Update to proper type checking with new CEL API when stable
 
 	return nil
 }
@@ -118,9 +115,4 @@ func (e *Evaluator) ClearCache() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.cache = make(map[string]cel.Program)
-}
-
-// convertToStructPB converts a map to structpb.Struct for CEL
-func convertToStructPB(m map[string]interface{}) (*structpb.Struct, error) {
-	return structpb.NewStruct(m)
 }
