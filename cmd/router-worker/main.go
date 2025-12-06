@@ -2,20 +2,20 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/aescanero/dago-libs/pkg/domain"
+	"github.com/aescanero/dago-adapters/pkg/llm"
+	"github.com/aescanero/dago-libs/pkg/domain/state"
 	"github.com/aescanero/dago-libs/pkg/ports"
 	"github.com/aescanero/dago-node-router/internal/config"
 	"github.com/aescanero/dago-node-router/internal/router"
 	"github.com/aescanero/dago-node-router/internal/worker"
-	"encoding/json"
 
-	"github.com/aescanero/dago-libs/pkg/domain/state"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -174,97 +174,14 @@ func initLogger(level string) (*zap.Logger, error) {
 	return config.Build()
 }
 
-// initLLMClient initializes the LLM client based on provider
+// initLLMClient initializes the LLM client using dago-adapters
 func initLLMClient(cfg *config.Config) (ports.LLMClient, error) {
-	switch cfg.LLMProvider {
-	case "anthropic":
-		return newAnthropicClient(cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMTimeout), nil
-	default:
-		return nil, fmt.Errorf("unsupported llm provider: %s", cfg.LLMProvider)
-	}
-}
-
-// anthropicClient implements ports.LLMClient for Anthropic Claude
-// MVP: Stub implementation - TODO: Implement proper Anthropic SDK integration
-type anthropicClient struct {
-	apiKey  string
-	model   string
-	timeout time.Duration
-	logger  *zap.Logger
-}
-
-// newAnthropicClient creates a new Anthropic client
-func newAnthropicClient(apiKey, model string, timeout time.Duration) *anthropicClient {
 	logger, _ := zap.NewProduction()
-	return &anthropicClient{
-		apiKey:  apiKey,
-		model:   model,
-		timeout: timeout,
-		logger:  logger,
-	}
-}
-
-// GenerateCompletion generates a completion from the LLM (compatibility method)
-func (c *anthropicClient) GenerateCompletion(ctx context.Context, req interface{}) (interface{}, error) {
-	llmReq, ok := req.(*domain.LLMRequest)
-	if !ok {
-		return nil, fmt.Errorf("expected *domain.LLMRequest, got %T", req)
-	}
-
-	c.logger.Warn("LLM client is stub implementation - returning mock response",
-		zap.String("model", llmReq.Model))
-
-	// Return mock response for MVP
-	return &domain.LLMResponse{
-		Content: "This is a stub LLM response. Implement Anthropic SDK integration.",
-		Model:   llmReq.Model,
-		Usage: domain.Usage{
-			InputTokens:  100,
-			OutputTokens: 50,
-		},
-	}, nil
-}
-
-// Complete performs a standard text completion
-func (c *anthropicClient) Complete(ctx context.Context, req ports.CompletionRequest) (*ports.CompletionResponse, error) {
-	c.logger.Warn("LLM Complete is stub implementation - returning mock response")
-	return &ports.CompletionResponse{
-		ID:    "stub-id",
-		Model: req.Model,
-		Message: ports.Message{
-			Role:    "assistant",
-			Content: "This is a stub response. Implement Anthropic SDK integration.",
-		},
-		FinishReason: "stop",
-		Usage: ports.UsageInfo{
-			PromptTokens:     100,
-			CompletionTokens: 50,
-			TotalTokens:      150,
-		},
-		CreatedAt: time.Now(),
-	}, nil
-}
-
-// CompleteWithTools performs a completion with tool calling support
-func (c *anthropicClient) CompleteWithTools(ctx context.Context, req ports.CompletionRequest, tools []ports.Tool) (*ports.CompletionResponse, error) {
-	c.logger.Warn("LLM CompleteWithTools is stub implementation")
-	return c.Complete(ctx, req)
-}
-
-// CompleteStructured performs a completion with guaranteed JSON schema conformance
-func (c *anthropicClient) CompleteStructured(ctx context.Context, req ports.CompletionRequest, schema ports.JSONSchema) (*ports.StructuredResponse, error) {
-	c.logger.Warn("LLM CompleteStructured is stub implementation - returning mock response")
-	return &ports.StructuredResponse{
-		Data: map[string]interface{}{
-			"message": "This is a stub structured response. Implement Anthropic SDK integration.",
-		},
-		Usage: ports.UsageInfo{
-			PromptTokens:     100,
-			CompletionTokens: 50,
-			TotalTokens:      150,
-		},
-		CreatedAt: time.Now(),
-	}, nil
+	return llm.NewClient(&llm.Config{
+		Provider: cfg.LLMProvider,
+		APIKey:   cfg.LLMAPIKey,
+		Logger:   logger,
+	})
 }
 
 // RedisEventBus implements ports.EventBus using Redis Streams
